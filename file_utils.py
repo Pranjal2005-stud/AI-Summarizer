@@ -1,38 +1,51 @@
 import pdfplumber
 import docx
-from PIL import Image
-import pytesseract
+import easyocr
+import os
+
+# Initialize the EasyOCR reader globally. This loads the English language model into memory 
+# once when the server starts, making subsequent image uploads significantly faster!
+ocr_reader = easyocr.Reader(['en'])
 
 def extract_text(file_path):
 
     text = ""
+    ext = os.path.splitext(file_path)[1].lower()
 
     try:
 
-        if file_path.endswith(".pdf"):
+        # ---------- PDF ----------
+        if ext == ".pdf":
 
-            try:
-                with pdfplumber.open(file_path) as pdf:
-                    for page in pdf.pages:
-                        text += page.extract_text() or ""
-            except:
-                print("PDFPlumber failed → trying OCR")
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    text += page.extract_text() or ""
 
-                images = Image.open(file_path)
-                text += pytesseract.image_to_string(images)
+        # ---------- DOCX ----------
+        elif ext == ".docx":
 
-        elif file_path.endswith(".docx"):
+            document = docx.Document(file_path)
+            for para in document.paragraphs:
+                text += para.text + "\n"
 
-            doc = docx.Document(file_path)
-            for para in doc.paragraphs:
-                text += para.text
+        # ---------- TXT ----------
+        elif ext == ".txt":
 
-        elif file_path.endswith((".jpg", ".png", ".jpeg")):
+            with open(file_path, "r", encoding="utf-8") as f:
+                text = f.read()
 
-            img = Image.open(file_path)
-            text = pytesseract.image_to_string(img)
+        # ---------- IMAGE OCR ----------
+        elif ext in [".png", ".jpg", ".jpeg"]:
+
+            # EasyOCR natively supports reading directly from the file path
+            result = ocr_reader.readtext(file_path, detail=0)
+            text = " ".join(result)
+
+        else:
+            text = ""
 
     except Exception as e:
         print("Extraction error:", e)
+        return ""
 
-    return text
+    return text.strip()

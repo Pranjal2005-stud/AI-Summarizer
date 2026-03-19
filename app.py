@@ -13,22 +13,24 @@ def home():
 @app.route("/summarize", methods=["POST"])
 def summarize():
 
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
     file = request.files["file"]
-    if file is None or file.filename == "":
-        return jsonify({"error": "No file uploaded"})
+
+    if file.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+
     file_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(file_path)
 
     text = extract_text(file_path)
 
-    if not text:
-        return jsonify({"error": "No text found"})
+    if not text.strip():
+        return jsonify({"error": "Could not extract text from file"}), 400
 
     summary = generate_summary(text)
 
-    return jsonify({
-        "summary": summary
-    })
-
+    return jsonify({"summary": summary})
 if __name__ == "__main__":
     app.run(debug=True)
