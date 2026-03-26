@@ -11,20 +11,20 @@ genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 # Initialize the lightning fast Gemini 2.5 Flash model specifically designed for massive context handling
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-def generate_summary(text):
-    # Safeguard: Images often contain very little text. 
-    # If the text is incredibly short, it takes less time to read than summarization API latency.
+WORD_TARGETS = {
+    "concise":  "strictly between 100 and 110 words",
+    "midsize":  "approximately 200 words",
+    "detailed": "between 300 and 350 words",
+}
+
+def generate_summary(text, mode="concise"):
     if len(text.split()) < 40:
         return text
 
-    # Since Gemini 1.5 Flash has a massive 1M token context window, 
-    # we completely bypass the old Map-Reduce chunking logic.
-    # However, to prevent massively dense 10MB+ files from exceeding Google's maximum REST JSON payload limit,
-    # we logically cap the extraction buffer to the first 500,000 characters (~125,000 tokens).
     safe_text = text[:500000]
+    target = WORD_TARGETS.get(mode, WORD_TARGETS["concise"])
+    prompt = f"Read the following document carefully and write a clear, intelligent summary covering all main points in {target}. Return only the summary text.\n\nDOCUMENT CONTENT:\n{safe_text}"
 
-    prompt = f"Please aggressively read the following document and write a very clear, concise, highly intelligent summary covering all the main structural points in roughly 150 words.\n\nDOCUMENT CONTENT:\n{safe_text}"
-    
     try:
         response = model.generate_content(prompt)
         return response.text.strip()

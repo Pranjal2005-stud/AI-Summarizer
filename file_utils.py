@@ -1,11 +1,13 @@
 import pdfplumber
 import docx
-import easyocr
 import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+import PIL.Image
 
-# Initialize the EasyOCR reader globally. This loads the English language model into memory 
-# once when the server starts, making subsequent image uploads significantly faster!
-ocr_reader = easyocr.Reader(['en'])
+load_dotenv()
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 def extract_text(file_path):
 
@@ -34,12 +36,12 @@ def extract_text(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
 
-        # ---------- IMAGE OCR ----------
+        # ---------- IMAGE (Gemini Vision) ----------
         elif ext in [".png", ".jpg", ".jpeg"]:
 
-            # EasyOCR natively supports reading directly from the file path
-            result = ocr_reader.readtext(file_path, detail=0)
-            text = " ".join(result)
+            image = PIL.Image.open(file_path)
+            response = model.generate_content(["Extract all the text from this image. Return only the extracted text, nothing else.", image])
+            text = response.text.strip()
 
         else:
             text = ""

@@ -59,7 +59,8 @@ def summarize():
         if not text.strip():
             return jsonify({"error": "Could not extract text from file"}), 400
 
-        summary = generate_summary(text)
+        mode = request.form.get("mode", "concise")
+        summary = generate_summary(text, mode)
 
         # Automatically save generated log into persistent history.db
         word_count = len(summary.split())
