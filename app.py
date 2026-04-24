@@ -6,11 +6,13 @@ import sqlite3
 from datetime import datetime
 from file_utils import extract_text
 from summarizer import generate_summary
+from flask_cors import CORS
 
 # Securely bind the Gemini Cloud API credentials from the .env environment matrix
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 # Security: Hard limit total upload payload to 25MB to prevent physical server RAM explosion crashes
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024
 
